@@ -16,9 +16,9 @@ phi = np.linspace(0,2*np.pi,100001)
 Pcosth = np.ones(len(costh))/len(costh)
 Pphi = np.ones(len(phi))/len(phi)
 
-Nrays1 = 10551
-Nrays2 = 1348
-Nrays3 = 550
+Nrays1 = 4055
+Nrays2 = 4000
+Nrays3 = 4000
 
 def genRays(Nrays1,Nrays2,Nrays3):
     phi1_all = np.zeros(Nrays1)
@@ -29,24 +29,22 @@ def genRays(Nrays1,Nrays2,Nrays3):
 
     phi3_all = np.zeros(Nrays3)
     theta3_all = np.zeros(Nrays3)
-
+    print("Generating rays for E1.")
     for i in range(Nrays1):
-        print("Generating rays for E1. Iteration",i)
         phi1_all[i] = np.random.choice(phi,p=Pphi)
         theta1_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
 
         # Convert from theta to latitude
     theta1_all = (np.pi/2.-theta1_all)
-
+    print("Generating rays for E2.")
     for i in range(Nrays2):
-        print("Generating rays for E2. Iteration",i)
         phi2_all[i] = np.random.choice(phi,p=Pphi)
         theta2_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
 
     theta2_all = (np.pi/2.-theta2_all)
 
+    print("Generating rays for E3.")
     for i in range(Nrays3):
-        print("Generating rays for E3. Iteration",i)
         phi3_all[i] = np.random.choice(phi,p=Pphi)
         theta3_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
 
@@ -54,11 +52,7 @@ def genRays(Nrays1,Nrays2,Nrays3):
 
     return theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all
 
-theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = genRays(Nrays1,Nrays2,Nrays3)
-
-phi3_all = phi3_all[abs(theta3_all) > 70*DEGTORAD]
-theta3_all = theta3_all[abs(theta3_all) > 70*DEGTORAD]
-R = np.linspace(0.0,0.25,10)
+R = np.linspace(0.0,20.,10)
 
 def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all): 
     Q = np.zeros(len(R))
@@ -69,7 +63,7 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
         Qsub = np.zeros(len(theta3_all))
         for i in range(len(theta3_all)): 
     #        print("Running iteration",i)
-            target = np.cos(np.arctan(R[j]))
+            target = np.cos(R[j]*DEGTORAD)
 
             theta3 = theta3_all[i]
             phi3 = phi3_all[i]
@@ -80,14 +74,20 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
             phi1 = phi1_all[np.dot(np.transpose(v3),np.array([np.cos(theta1_all)*np.sin(phi1_all),np.cos(theta1_all)*np.cos(phi1_all),np.sin(theta1_all)])) - target >= 0]
             v1 = np.array([np.cos(theta1)*np.sin(phi1),np.cos(theta1)*np.cos(phi1),np.sin(theta1)])
             v1 = np.transpose(v1)
-            len1 = len(theta1) 
+            if(len(theta1) != 0):
+                len1 = len(theta1)
+            else:
+                len1 = 1.0
             v1 = np.sum(v1,axis=0)
             
             theta2 = theta2_all[np.dot(np.transpose(v3),np.array([np.cos(theta2_all)*np.sin(phi2_all),np.cos(theta2_all)*np.cos(phi2_all),np.sin(theta2_all)])) - target >= 0]
             phi2 = phi2_all[np.dot(np.transpose(v3),np.array([np.cos(theta2_all)*np.sin(phi2_all),np.cos(theta2_all)*np.cos(phi2_all),np.sin(theta2_all)])) - target >= 0]
             v2 = np.array([np.cos(theta2)*np.sin(phi2),np.cos(theta2)*np.cos(phi2),np.sin(theta2)])
             v2 = np.transpose(v2)
-            len2 = len(theta2) 
+            if(len(theta2) != 0):
+                len2 = len(theta2)
+            else:
+                len2 = 1.0
             v2 = np.sum(v2,axis=0)
             
             Qsub[i] = np.dot(np.cross(v1,v2),v3)/len2/len1 
@@ -98,4 +98,21 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
     std /= np.sqrt(len(theta3_all))
     return Q, std
 
-Q,std = computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all)
+Nruns = 30
+Q = np.zeros([Nruns,len(R)])
+std = np.zeros([Nruns,len(R)])
+
+for j in range(Nruns):
+    print("Running Loop",j)
+    theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = genRays(Nrays1,Nrays2,Nrays3)
+
+    phi3_all = phi3_all[abs(theta3_all) > 70*DEGTORAD]
+    theta3_all = theta3_all[abs(theta3_all) > 70*DEGTORAD]
+
+    Q[j],std[j] = computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all)
+
+Qmean = np.zeros(len(R))
+stdmean = np.zeros(len(R))
+for j in range(len(R)):
+    Qmean[j] = np.mean(Q[:,j])
+    stdmean[j] = np.sqrt(np.mean(std[:,j]**2)/(Nruns-1.))
