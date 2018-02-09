@@ -7,6 +7,12 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import subprocess
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+size = comm.Get_size()
+rank = comm.Get_rank()
 
 DEGTORAD = np.pi/180
 
@@ -16,9 +22,23 @@ phi = np.linspace(0,2*np.pi,100001)
 Pcosth = np.ones(len(costh))/len(costh)
 Pphi = np.ones(len(phi))/len(phi)
 
-Nrays1 = 4055
-Nrays2 = 4000
-Nrays3 = 4000
+Nrays1 = 705
+Nrays2 = 400
+Nrays3 = 100
+
+R = np.linspace(2.0,20.,10)
+# Nruns per processor
+Nruns = 5
+
+result = subprocess.run(['git','rev-parse', 'HEAD'], stdout=subprocess.PIPE)
+
+if(rank == 0):
+    print("**************Monte-Carlo Simulation**************")
+    print("Omkar H. Ramachandran, Laboratory for Atmospheric and Space Physics")
+    print("Revision Hash:",result.stdout)
+    print("Parameters:")
+    print("Nruns:",Nruns*size,"\nNrays1:",Nrays1,"\nNrays2:",Nrays2,"\nNrays3:",Nrays3)
+
 
 def genRays(Nrays1,Nrays2,Nrays3):
     phi1_all = np.zeros(Nrays1)
@@ -29,21 +49,18 @@ def genRays(Nrays1,Nrays2,Nrays3):
 
     phi3_all = np.zeros(Nrays3)
     theta3_all = np.zeros(Nrays3)
-    print("Generating rays for E1.")
     for i in range(Nrays1):
         phi1_all[i] = np.random.choice(phi,p=Pphi)
         theta1_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
 
         # Convert from theta to latitude
     theta1_all = (np.pi/2.-theta1_all)
-    print("Generating rays for E2.")
     for i in range(Nrays2):
         phi2_all[i] = np.random.choice(phi,p=Pphi)
         theta2_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
 
     theta2_all = (np.pi/2.-theta2_all)
 
-    print("Generating rays for E3.")
     for i in range(Nrays3):
         phi3_all[i] = np.random.choice(phi,p=Pphi)
         theta3_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
@@ -52,14 +69,12 @@ def genRays(Nrays1,Nrays2,Nrays3):
 
     return theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all
 
-R = np.linspace(0.0,20.,10)
 
 def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all): 
     Q = np.zeros(len(R))
     std = np.zeros(len(R))
 
     for j in range(len(R)):
-        print("Computing loop for R=",R[j])
         Qsub = np.zeros(len(theta3_all))
         for i in range(len(theta3_all)): 
     #        print("Running iteration",i)
@@ -98,21 +113,33 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
     std /= np.sqrt(len(theta3_all))
     return Q, std
 
-Nruns = 30
 Q = np.zeros([Nruns,len(R)])
 std = np.zeros([Nruns,len(R)])
-
+print("Processor",rank,"is starting data build run")
 for j in range(Nruns):
-    print("Running Loop",j)
     theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = genRays(Nrays1,Nrays2,Nrays3)
 
     phi3_all = phi3_all[abs(theta3_all) > 70*DEGTORAD]
     theta3_all = theta3_all[abs(theta3_all) > 70*DEGTORAD]
 
     Q[j],std[j] = computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all)
-
+print("Processor",rank,": Computation complete!")
 Qmean = np.zeros(len(R))
 stdmean = np.zeros(len(R))
 for j in range(len(R)):
     Qmean[j] = np.mean(Q[:,j])
     stdmean[j] = np.sqrt(np.mean(std[:,j]**2)/(Nruns-1.))
+
+print("Gather at rank 0")
+if(rank != 0):
+    comm.send(np.array([Qmean,stdmean]),dest=0)
+else:
+    flag = 0
+    for i in range(1,size):
+        flag += 1
+        A = comm.recv(source=i)
+        Qmean = Qmean*(flag)/(flag+1)+A[0]/(flag+1)
+        stdmean = np.sqrt(stdmean**2*flag/(flag+1)+A[1]**2/(flag+1))
+    A = np.array([Qmean,stdmean])
+    np.savetxt("Q.txt",A)
+
