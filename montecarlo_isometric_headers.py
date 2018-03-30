@@ -10,13 +10,15 @@ import matplotlib.pyplot as plt
 
 DEGTORAD = np.pi/180
 
-costh = np.linspace(-1,1,100001)
-phi = np.linspace(0,2*np.pi,100001)
+th = np.arccos(np.linspace(1,-1,1800))
+phi = np.linspace(0,2*np.pi,3600)
+dphi = phi[1] - phi[0]
 
-Pcosth = np.ones(len(costh))/len(costh)
-Pphi = np.ones(len(phi))/len(phi)
-
-def genRays(Nrays1,Nrays2,Nrays3):
+def genRays(Nrays1,Nrays2,Nrays3,Jpd):
+    """
+    INPUT: Number of rays in bin 1, bin 2, bin 3 and the joint probability density.
+    OUTPUT: theta1_all, phi1_all, theta2_all, phi2_all, theta3_all, phi3_all
+    """
     phi1_all = np.zeros(Nrays1)
     theta1_all = np.zeros(Nrays1)
 
@@ -25,24 +27,47 @@ def genRays(Nrays1,Nrays2,Nrays3):
 
     phi3_all = np.zeros(Nrays3)
     theta3_all = np.zeros(Nrays3)
+
+    # Compute the marginal probability for phi.
+    phi_marginal = np.zeros(len(phi))
+    for i in range(len(phi_marginal)):
+        phi_marginal[i] = sum(Jpd[:,i])
+    phi_marginal /= phi_marginal.sum()
+    print(sum(phi_marginal))
+
     print("Generating rays for E1.")
     for i in range(Nrays1):
-        phi1_all[i] = np.random.choice(phi,p=Pphi)
-        theta1_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
+        phi1_all[i] = np.random.choice(phi,p=phi_marginal)
+        ptheta_g_phi = np.zeros(len(th))
+        ii = int(phi1_all[i]/dphi)
+        for j in range(len(th)):
+            ptheta_g_phi[j] = Jpd[j,ii]/phi_marginal[ii]
+        ptheta_g_phi = ptheta_g_phi/ptheta_g_phi.sum()
+        theta1_all[i] = np.random.choice(th,p=ptheta_g_phi)
 
         # Convert from theta to latitude
     theta1_all = (np.pi/2.-theta1_all)
     print("Generating rays for E2.")
     for i in range(Nrays2):
-        phi2_all[i] = np.random.choice(phi,p=Pphi)
-        theta2_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
+        phi2_all[i] = np.random.choice(phi,p=phi_marginal)
+        ptheta_g_phi = np.zeros(len(th))
+        ii = int(phi2_all[i]/dphi)
+        for j in range(len(th)):
+            ptheta_g_phi[j] = Jpd[j,ii]/phi_marginal[ii]
+        ptheta_g_phi = ptheta_g_phi/ptheta_g_phi.sum()
+        theta2_all[i] = np.random.choice(th,p=ptheta_g_phi)
 
     theta2_all = (np.pi/2.-theta2_all)
 
     print("Generating rays for E3.")
     for i in range(Nrays3):
-        phi3_all[i] = np.random.choice(phi,p=Pphi)
-        theta3_all[i] = np.arccos(np.random.choice(costh,p=Pcosth))
+        phi3_all[i] = np.random.choice(phi,p=phi_marginal)
+        ptheta_g_phi = np.zeros(len(th))
+        ii = int(phi3_all[i]/dphi)
+        for j in range(len(th)):
+            ptheta_g_phi[j] = Jpd[j,ii]/phi_marginal[ii]
+        ptheta_g_phi = ptheta_g_phi/ptheta_g_phi.sum()
+        theta3_all[i] = np.random.choice(th,p=ptheta_g_phi)
 
     theta3_all = (np.pi/2.-theta3_all)
 
@@ -89,9 +114,12 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
             Qsub[i] = np.dot(np.cross(v1,v2),v3)/len2/len1 
             Q[j] += np.dot(np.cross(v1,v2),v3)/len2/len1
         std[j] = np.std(Qsub) 
-
-    Q /= len(theta3_all)
-    std /= np.sqrt(len(theta3_all))
+    if(len(theta3_all) != 0):
+        Q /= len(theta3_all)
+        std /= np.sqrt(len(theta3_all))
+    else:
+        Q = np.zeros(len(R))
+        std = np.zeros(len(R))
     return Q, std
 
 #Nruns = 1000
