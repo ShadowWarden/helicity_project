@@ -9,9 +9,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 DEGTORAD = np.pi/180
+Nth = 1800
+Nphi = 3600
 
-th = np.arccos(np.linspace(1,-1,1800))
-phi = np.linspace(0,2*np.pi,3600)
+th = np.arccos(np.linspace(1,-1,Nth))
+phi = np.linspace(0,2*np.pi,Nphi)
 dphi = phi[1] - phi[0]
 
 def genRays(Nrays1,Nrays2,Nrays3,Jpd):
@@ -122,21 +124,92 @@ def computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all):
         std = np.zeros(len(R))
     return Q, std
 
-#Nruns = 1000
-#Q = np.zeros([Nruns,len(R)])
-#std = np.zeros([Nruns,len(R)])
+def mask(theta1_all,phi1_all,path1FHL):
+    theta1_all = theta1_all*DEGTORAD
+    phi1_all = phi1_all*DEGTORAD
 
-#for j in range(Nruns):
-#print("Running Loop",j)
-#    theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = genRays(Nrays1,Nrays2,Nrays3)
-#
-#    phi3_all = phi3_all[abs(theta3_all) > 70*DEGTORAD]
-#    theta3_all = theta3_all[abs(theta3_all) > 70*DEGTORAD]
-#
-#    Q[j],std[j] = computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all)
-#
-#Qmean = np.zeros(len(R))
-#stdmean = np.zeros(len(R))
-#for j in range(len(R)):
-#    Qmean[j] = np.mean(Q[:,j])
-#    stdmean[j] = np.sqrt(np.mean(std[:,j]**2)/(Nruns-1.))
+    hdul_he = fits.open(path1FHL)
+    data_he = hdul_he[1].data
+    data_he_lon = data_he.field(4)[abs(data_he.field(4)) > 0]*DEGTORAD
+    data_he_lat = data_he.field(3)[abs(data_he.field(4)) > 0]*DEGTORAD
+    for i in range(len(data_he_lon)):
+        v = np.array([np.cos(data_he_lat[i])*np.cos(data_he_lon[i]),np.cos(data_he_lat[i])*np.sin(data_he_lon[i]),np.sin(data_he_lat[i])])
+        # Mask to 2 degrees
+        target = np.cos(2*DEGTORAD)
+
+        theta1_new = theta1_all[np.dot(v,np.array([np.cos(theta1_all)*np.sin(phi1_all),np.cos(theta1_all)*np.cos(phi1_all),np.sin(theta1_all)])) - target <= 0]
+        phi1_new = phi1_all[np.dot(v,np.array([np.cos(theta1_all)*np.sin(phi1_all),np.cos(theta1_all)*np.cos(phi1_all),np.sin(theta1_all)])) - target <= 0]
+
+        theta1_all = theta1_new
+        phi1_all = phi1_new
+
+    return theta1_all,phi1_all
+
+def flip(N):
+    """ Convert Phi axis from 0->360 to 180->180 """
+    n = np.shape(N)[1]
+    N2 = np.zeros(np.shape(N))
+
+    N2[:,:180] = N[:,180:]
+    N2[:,180:] = N[:,:180]
+
+    return N2
+
+def derivative(N):
+    n = np.shape(N)[0]
+    m = np.shape(N)[1]
+
+    diff = np.zeros(n-2)
+    diffarray = np.zeros(m)
+
+    dth = 180./n
+
+    theta = np.linspace(0,180,n)
+    theta = theta[1:-1]
+
+    print(n,m)
+
+    for i in range(n-2):
+        costhinv = (np.cos(theta[i]*DEGTORAD))**-1
+        for j in range(m):
+            diffarray[j] = abs((N[i+2,j] - N[i,j])/(2*dth))
+
+        diff[i] = np.mean(diffarray)
+    return diff
+
+def Flux(N,Th):
+    nth = int(Th/180.*Nth)
+    PhiN = np.sum(N[:nth])/(4*np.pi*(1-np.sin(Th*DEGTORAD)))
+    PhiS = np.sum(N[-nth:])/(4*np.pi*(1-np.sin(Th*DEGTORAD)))
+    PhiT = (PhiN+PhiS)
+    PhiRest = np.sum(N[nth:-nth])/(4*np.pi*np.sin(Th*DEGTORAD))
+    return np.array([PhiT,PhiRest])
+
+def Correct_Galactic(N,Th,theta_all,phi_all,Jpd):
+    PhiT, PhiRest = Flux(N,Th)
+    
+    nth = int(Th/180.*Nth)
+   
+    thi = np.linspace(0,180.,Nth)
+
+    phi_marginal = np.zeros(len(phi))
+    for i in range(len(phi_marginal)):
+        phi_marginal[i] = sum(Jpd[:,i])
+    phi_marginal /= phi_marginal.sum()
+
+    ii = np.where(theta_all > -(thi[nth]-90.0))
+    theta_all = np.delete(theta_all,ii)
+    phi_all = np.delete(phi_all,ii)
+
+    ii = np.where(-theta_all > (thi[-nth]-90.0))
+    theta_all = np.delete(theta_all,ii)
+    phi_all = np.delete(phi_all,ii)
+
+    for i in range(int(PhiRest)):
+        Ptheta_all = np.ones(len(theta_all))/len(theta_all)
+        theta_choice = np.random.choice(theta_all,p=Ptheta_all)
+        ii = np.where(theta_all == theta_choice)
+        theta_all = np.delete(theta_all,ii)
+        phi_all = np.delete(phi_all,ii)
+        
+    return theta_all*DEGTORAD, phi_all*DEGTORAD, PhiT+PhiRest
