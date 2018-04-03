@@ -57,32 +57,54 @@ ph2 = data2.field(3)
 
 th3 = data3.field(4)
 ph3 = data3.field(3)
+
+N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(1800,3600))
+
+diff = head.derivative(N2)
+
+thresh = diff[150]
+
+N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(1800,3600))
+
+ii = np.where(abs(head.derivative(N1)[:850] - thresh) < 1e-3)
+
+loc1 = head.th[ii[0][-1]]/DEGTORAD
+
+N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(1800,3600))
+
+ii = np.where(abs(head.derivative(N3)[:850] - thresh) < 1e-3)
+
+loc3 = head.th[ii[0][-1]]/DEGTORAD
+
+
 for j in range(Nruns):
 
-    N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(180,360))
+    N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(1800,3600))
 
-    th1,ph1,Nrays1 = head.Correct_Galactic(N1,8.3311,th1,ph1,Jpd)
-    N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(180,360))
+    theta1_all,phi1_all,Nrays1 = head.Correct_Galactic(N1,loc1,th1,ph1,Jpd)
+    N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(1800,3600))
 
-    th2,ph2,Nrays2 = head.Correct_Galactic(N2,11.3311,th2,ph2,Jpd)
+    theta2_all,phi2_all,Nrays2 = head.Correct_Galactic(N2,15.0,th2,ph2,Jpd)
 
-    N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(180,360))
+    N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(1800,3600))
 
-    th3,ph3,Nrays3 = head.Correct_Galactic(N3,18.3311,th3,ph3,Jpd)
+#    theta3_all,phi3_all,Nrays3 = head.Correct_Galactic(N3,loc3,th3,ph3,Jpd)
+    theta3_all = th3
+    phi3_all = ph3
 
-    Nrays1 = int(Nrays1)
-    Nrays2 = int(Nrays2)
-    Nrays3 = int(Nrays3)
+#    Nrays1 = int(Nrays1)
+#    Nrays2 = int(Nrays2)
+#    Nrays3 = int(Nrays3)
 
-    print("N(E_1)=",Nrays1,",N(E_2)=",Nrays2,",N(E_3)=",Nrays3)
-    theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = head.genRays(Nrays1,Nrays2,Nrays3,Jpd1)
+#    print("N(E_1)=",Nrays1,",N(E_2)=",Nrays2,",N(E_3)=",Nrays3)
+   # theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = head.genRays(Nrays1,Nrays2,Nrays3,Jpd1)
 
-    theta1_all = np.append(theta1_all,th1)
-    phi1_all = np.append(phi1_all,ph1)
-    theta2_all = np.append(theta2_all,th2)
-    phi2_all = np.append(phi2_all,ph2)
-    theta3_all = np.append(theta3_all,th3)
-    phi3_all = np.append(phi3_all,ph3)
+#    theta1_all = np.append(theta1_all,th1)
+#    phi1_all = np.append(phi1_all,ph1)
+#    theta2_all = np.append(theta2_all,th2)
+#    phi2_all = np.append(phi2_all,ph2)
+#    theta3_all = np.append(theta3_all,th3)
+#    phi3_all = np.append(phi3_all,ph3)
 
     print("Masking Data around 1FHL sources")
 

@@ -192,11 +192,6 @@ def Correct_Galactic(N,Th,theta_all,phi_all,Jpd):
    
     thi = np.linspace(0,180.,Nth)
 
-    phi_marginal = np.zeros(len(phi))
-    for i in range(len(phi_marginal)):
-        phi_marginal[i] = sum(Jpd[:,i])
-    phi_marginal /= phi_marginal.sum()
-
     ii = np.where(theta_all > -(thi[nth]-90.0))
     theta_all = np.delete(theta_all,ii)
     phi_all = np.delete(phi_all,ii)
@@ -204,6 +199,8 @@ def Correct_Galactic(N,Th,theta_all,phi_all,Jpd):
     ii = np.where(-theta_all > (thi[-nth]-90.0))
     theta_all = np.delete(theta_all,ii)
     phi_all = np.delete(phi_all,ii)
+
+    print(PhiRest)
 
     for i in range(int(PhiRest)):
         Ptheta_all = np.ones(len(theta_all))/len(theta_all)
