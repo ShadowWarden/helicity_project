@@ -1,0 +1,67 @@
+% Honours thesis Main Document
+% Omkar H. Ramachandran
+% omkar.ramachandran@colorado.edu
+%
+
+\documentclass[defaultstyle,11pt]{thesis}
+\usepackage{amssyb}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usepackage{listings}
+\graphicspath{{./plots/}}
+\usetikzlibrary{automata, positioning, arrows}
+\usepackage{color}
+
+\lstdefinestyle{custompy}{
+  belowcaptionskip=1\baselineskip,
+  breaklines=true,
+  frame=L,
+  xleftmargin=\parindent,
+  language=Python,
+  showstringspaces=false,
+  basicstyle=\footnotesize\ttfamily,
+  keywordstyle=\bfseries\color{green},
+  commentstyle=\itshape\color{red},
+  identifierstyle=\color{black},
+  stringstyle=\color{blue},
+}
+
+\lstset{escapechar=@,style=custompy}
+
+
+\title{Detection of Extragalactic Magnetic Fields through analysis of Photon Arrival Directions}
+
+\author{Omkar}{H. Ramachandran}
+
+\degree{Bachelor of Arts}{BA, Physics, Honors Thesis}
+
+\dept{Department of}{Physics}
+
+\advisor{Dr.}{Axel Brandenburg}
+
+\reader{Dr. Dmitri Uzdensky}
+
+\readerThree{Dr. Phil Armitage}
+
+\readerFour{Dr. John Cumalat}
+
+\abstract{Not complete yet}
+
+\dedication[Dedication]{To myself}
+
+\acknowledgements{My superhuman brain}
+
+\ToCisShort
+
+\LoFisShort
+
+\LoTisShort
+
+\begin{document}
+
+\input montecarlo.tex
+
+\end{document}
+
