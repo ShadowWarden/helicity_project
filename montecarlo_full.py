@@ -10,7 +10,7 @@ import numpy as np
 import montecarlo_isometric_headers as head
 from astropy.io import fits
 
-Nruns = 1
+Nruns = 100
 DEGTORAD = np.pi/180
 
 print("**********Montecarlo_Parallel***********")
@@ -30,7 +30,7 @@ print(Jpd.sum())
 
 Jpd1 = Jpd / Jpd.sum()
 
-R = np.linspace(2,20,10)
+R = np.linspace(2,25,25)
 
 data = []
 
@@ -41,8 +41,8 @@ std = np.zeros([Nruns,len(R)])
 stdnorth = np.zeros([Nruns,len(R)])
 stdsouth = np.zeros([Nruns,len(R)])
 
-hdul1 = fits.open("data/FermiData_PASS8_30-40GeV.fits")
-hdul2 = fits.open("data/FermiData_PASS8_40-50GeV.fits")
+hdul1 = fits.open("data/FermiData_PASS8_10-20GeV.fits")
+hdul2 = fits.open("data/FermiData_PASS8_20-30GeV.fits")
 hdul3 = fits.open("data/FermiData_PASS8_50-60GeV.fits")
 
 data1 = hdul1[1].data
@@ -55,56 +55,63 @@ ph1 = data1.field(3)
 th2 = data2.field(4)
 ph2 = data2.field(3)
 
+print(len(th2))
+
 th3 = data3.field(4)
 ph3 = data3.field(3)
 
-N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(1800,3600))
+N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(180,360))
 
 diff = head.derivative(N2)
 
-thresh = diff[150]
+thresh = diff[30]
 
-N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(1800,3600))
+#N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(1800,3600))
 
-ii = np.where(abs(head.derivative(N1)[:850] - thresh) < 1e-3)
+#ii = np.where(abs(head.derivative(N1)[:850] - thresh) < 1e-3)
 
-loc1 = head.th[ii[0][-1]]/DEGTORAD
+#loc1 = head.th[ii[0][-1]]/DEGTORAD
+loc1 = 8.54
 
-N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(1800,3600))
+#N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(1800,3600))
 
-ii = np.where(abs(head.derivative(N3)[:850] - thresh) < 1e-3)
+#ii = np.where(abs(head.derivative(N3)[:850] - thresh) < 1e-3)
 
-loc3 = head.th[ii[0][-1]]/DEGTORAD
+#loc3 = head.th[ii[0][-1]]/DEGTORAD
 
 
 for j in range(Nruns):
 
-    N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(1800,3600))
+    print("Starting Run",j)
 
-    theta1_all,phi1_all,Nrays1 = head.Correct_Galactic(N1,loc1,th1,ph1,Jpd)
-    N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(1800,3600))
+    N1,binsx,binsy = np.histogram2d(th1,ph1,bins=(180,360))
 
-    theta2_all,phi2_all,Nrays2 = head.Correct_Galactic(N2,15.0,th2,ph2,Jpd)
+    th1_all,ph1_all,Nrays1 = head.Correct_Galactic(N1,10.00,th1,ph1,Jpd)
+    N2,binsx,binsy = np.histogram2d(th2,ph2,bins=(180,360))
 
-    N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(1800,3600))
+    th2_all,ph2_all,Nrays2 = head.Correct_Galactic(N2,15.3,th2,ph2,Jpd)
 
-#    theta3_all,phi3_all,Nrays3 = head.Correct_Galactic(N3,loc3,th3,ph3,Jpd)
-    theta3_all = th3
-    phi3_all = ph3
+    print(len(th2_all))
 
-#    Nrays1 = int(Nrays1)
-#    Nrays2 = int(Nrays2)
-#    Nrays3 = int(Nrays3)
+    N3,binsx,binsy = np.histogram2d(th3,ph3,bins=(180,360))
+    Nrays3 = 100
+#    th3_all,ph3_all,Nrays3 = head.Correct_Galactic(N3,33.3,th3,ph3,Jpd)
+#    theta3_all = th3*DEGTORAD
+#    phi3_all = ph3*DEGTORAD
 
-#    print("N(E_1)=",Nrays1,",N(E_2)=",Nrays2,",N(E_3)=",Nrays3)
-   # theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = head.genRays(Nrays1,Nrays2,Nrays3,Jpd1)
+    Nrays1 = int(Nrays1)
+    Nrays2 = int(Nrays2)
+    Nrays3 = int(Nrays3)
 
-#    theta1_all = np.append(theta1_all,th1)
-#    phi1_all = np.append(phi1_all,ph1)
-#    theta2_all = np.append(theta2_all,th2)
-#    phi2_all = np.append(phi2_all,ph2)
-#    theta3_all = np.append(theta3_all,th3)
-#    phi3_all = np.append(phi3_all,ph3)
+    print("N(E_1)=",Nrays1,",N(E_2)=",Nrays2,",N(E_3)=",Nrays3)
+    theta1_all,phi1_all,theta2_all,phi2_all,theta3_all,phi3_all = head.genRays(Nrays1,Nrays2,Nrays3,Jpd1)
+
+    theta1_all = np.append(theta1_all,th1_all)
+    phi1_all = np.append(phi1_all,ph1_all)
+    theta2_all = np.append(theta2_all,th2_all)
+    phi2_all = np.append(phi2_all,ph2_all)
+    theta3_all = th3*DEGTORAD
+    phi3_all = ph3*DEGTORAD
 
     print("Masking Data around 1FHL sources")
 
@@ -144,17 +151,17 @@ for j in range(Nruns):
     Qsouth[j],stdsouth[j] = head.computeQ(R,theta1_all,phi1_all,theta2_all,phi2_all,theta3,phi3) 
 
 
-Qmean = np.zeros(len(R))
-stdmean = np.zeros(len(R))
-QmeanN = np.zeros(len(R))
-stdmeanN = np.zeros(len(R))
-QmeanS = np.zeros(len(R))
-stdmeanS = np.zeros(len(R))
-for j in range(len(R)):
-    Qmean[j] = np.mean(Q[:,j])
-    stdmean[j] = np.sqrt(np.mean(std[:,j]**2))
-    QmeanN[j] = np.mean(Qnorth[:,j])
-    stdmeanN[j] = np.sqrt(np.mean(stdnorth[:,j]**2))
-    QmeanS[j] = np.mean(Qsouth[:,j])
-    stdmeanS[j] = np.sqrt(np.mean(stdsouth[:,j]**2))
-
+#Qmean = np.zeros(len(R))
+#stdmean = np.zeros(len(R))
+#QmeanN = np.zeros(len(R))
+#stdmeanN = np.zeros(len(R))
+#QmeanS = np.zeros(len(R))
+#stdmeanS = np.zeros(len(R))
+#for j in range(len(R)):
+#    Qmean[j] = np.mean(Q[:,j])
+#    stdmean[j] = np.sqrt(np.mean(std[:,j]**2))
+#    QmeanN[j] = np.mean(Qnorth[:,j])
+#    stdmeanN[j] = np.sqrt(np.mean(stdnorth[:,j]**2))
+#    QmeanS[j] = np.mean(Qsouth[:,j])
+#    stdmeanS[j] = np.sqrt(np.mean(stdsouth[:,j]**2))
+#

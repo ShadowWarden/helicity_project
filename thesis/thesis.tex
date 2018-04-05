@@ -4,7 +4,8 @@
 %
 
 \documentclass[defaultstyle,11pt]{thesis}
-\usepackage{amssyb}
+\usepackage{amssymb}
+\usepackage{amsmath}
 \usepackage{float}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -13,6 +14,10 @@
 \graphicspath{{./plots/}}
 \usetikzlibrary{automata, positioning, arrows}
 \usepackage{color}
+\newcommand{\GeV}{\,{\rm GeV}}
+\newcommand{\TeV}{\,{\rm TeV}}
+\newcommand{\Mpc}{\,{\rm Mpc}}
+\newcommand{\kpc}{\,{\rm kpc}}
 
 \lstdefinestyle{custompy}{
   belowcaptionskip=1\baselineskip,
@@ -47,7 +52,15 @@
 
 \readerFour{Dr. John Cumalat}
 
-\abstract{Not complete yet}
+\abstract{A recent study by Tashiro et al. (2015) proposed a mechanism through which the 
+helicity of an extragalactc magnetic field could be estimated by measuring
+a CP-odd pseudoscalar $Q$.
+A significant observation in their study was the apparent dependence of
+this pseudoscalar on the hemisphere where it is measured. 
+In this study, we extend the original analysis using 100 weeks of data from 
+Pass 8 of the Fermi Large Area Telescope (LAT) to better understand this 
+dependence.
+}
 
 \dedication[Dedication]{To myself}
 
@@ -61,7 +74,7 @@
 
 \begin{document}
 
-\input montecarlo.tex
+\input fermiresults.tex
 
 \end{document}
 
